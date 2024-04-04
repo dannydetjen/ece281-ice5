@@ -101,8 +101,10 @@ begin
 	begin
         -- i_reset into initial state (o_floor 2)
         w_reset <= '1';  wait for k_clk_period;
+        w_reset <= '0';  wait for k_clk_period; --clear reset
             assert w_floor = "0010" report "bad reset" severity failure; 
         -- clear reset
+        w_reset <= '0';
 		
 		-- active UP signal
 		w_up_down <= '1'; 
@@ -112,9 +114,31 @@ begin
             assert w_floor = "0010" report "bad wait on floor2" severity failure;
         w_stop <= '0';  wait for k_clk_period;
             assert w_floor = "0011" report "bad up from floor2" severity failure;
-		-- rest of cases
-        
-        -- go back DOWN
+		-- rest of cases...
+		-- Continue moving up to the top floor
+            w_stop <= '0'; wait for k_clk_period * 2;
+            assert w_floor = "0100" report "bad up to top floor" severity failure;
+            -- Elevator stopping on top floor (while going up)
+            w_stop <= '1'; wait for k_clk_period * 2;
+            assert w_floor = "0100" report "bad stop at top floor" severity failure;
+            w_stop <= '0'; -- Prepare to move down
+            -- Prepare elevator to go back DOWN
+            w_up_down <= '0'; wait for k_clk_period;
+            assert w_floor = "0011" report "bad down from top" severity failure;
+            -- Continue moving down to the bottom floor
+            w_stop <= '0'; wait for k_clk_period * 3;
+            assert w_floor = "0001" report "bad down to bottom floor" severity failure;
+            -- Elevator stopping on bottom floor (while going down)
+            w_stop <= '1'; wait for k_clk_period * 2;
+            assert w_floor = "0001" report "bad stop at bottom floor" severity failure;
+            w_stop <= '0'; -- Resume normal operation
+            -- Test elevator waiting on a floor (example using floor 2)
+            -- Move to floor 2 for waiting test
+            w_up_down <= '1'; wait for k_clk_period * 2; -- going up to reach floor 2
+            w_stop <= '1'; wait for k_clk_period * 4; -- waiting on floor 2
+            assert w_floor = "0010" report "bad wait on floor 2" severity failure;
+            w_stop <= '0'; -- End of waiting test
+
           
 		  	
 		wait; -- wait forever
